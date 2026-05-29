@@ -1,0 +1,129 @@
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
+const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI;
+
+// ── MongoDB Schemas ──────────────────────────────────────────
+const memberSchema = new mongoose.Schema({
+  memberType: { type: String, enum: ['primary','spouse','child','other'], default: 'other' },
+  sortOrder:  { type: Number, default: 0 },
+  name:       { type: String, required: true, trim: true },
+  bloodGroup: { type: String, default: null },
+  dateOfBirth:    { type: String, default: null },
+  dateOfMarriage: { type: String, default: null },
+  mobileNo:       { type: String, default: null },
+  alternateContact: { type: String, default: null },
+  address:    { type: String, default: null, trim: true }
+});
+
+const registrationSchema = new mongoose.Schema({
+  familyCardNumber: { type: String, required: true, unique: true, trim: true },
+  becGroup:         { type: String, required: true, trim: true },
+  members:          [memberSchema],
+  ipAddress:        { type: String, default: null },
+  submittedAt:      { type: Date, default: Date.now }
+});
+
+const Registration = mongoose.model('Registration', registrationSchema);
+
+// ── Middleware ───────────────────────────────────────────────
+app.use(cors());
+app.use(express.json({ limit: '2mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ── Connect MongoDB ──────────────────────────────────────────
+async function connectDB() {
+  if (!MONGO_URI) {
+    console.error('❌  MONGO_URI environment variable is not set!');
+    console.error('    Set it in your .env file or Render dashboard.');
+    process.exit(1);
+  }
+  try {
+    await mongoose.connect(MONGO_URI);
+    console.log('✅  MongoDB connected successfully');
+  } catch (err) {
+    console.error('❌  MongoDB connection failed:', err.message);
+    process.exit(1);
+  }
+}
+
+// ── API: Submit ──────────────────────────────────────────────
+app.post('/api/submit', async (req, res) => {
+  try {
+    const { familyCardNumber, becGroup, members } = req.body;
+
+    if (!familyCardNumber || !becGroup || !members || !Array.isArray(members) || members.length === 0)
+      return res.status(400).json({ error: 'Missing required fields.' });
+
+    if (members.length > 10)
+      return res.status(400).json({ error: 'Maximum 10 family members allowed.' });
+
+    if (!members[0]?.name)
+      return res.status(400).json({ error: 'Primary member name is required.' });
+
+    const existing = await Registration.findOne({ familyCardNumber: familyCardNumber.trim() });
+    if (existing)
+      return res.status(409).json({ error: 'Family Card Registration Number already exists.' });
+
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+
+    const reg = new Registration({
+      familyCardNumber: familyCardNumber.trim(),
+      becGroup: becGroup.trim(),
+      ipAddress: ip,
+      members: members.map((m, i) => ({
+        memberType: m.memberType || (i === 0 ? 'primary' : 'other'),
+        sortOrder: i,
+        name: (m.name || '').trim(),
+        bloodGroup: m.bloodGroup || null,
+        dateOfBirth: m.dateOfBirth || null,
+        dateOfMarriage: m.dateOfMarriage || null,
+        mobileNo: m.mobileNo || null,
+        alternateContact: m.alternateContact || null,
+        address: (m.address || '').trim() || null
+      }))
+    });
+
+    await reg.save();
+    res.json({ success: true, registrationId: reg._id, message: 'Family registered successfully!' });
+
+  } catch (err) {
+    if (err.code === 11000)
+      return res.status(409).json({ error: 'Family Card Registration Number already exists.' });
+    console.error(err);
+    res.status(500).json({ error: 'Server error: ' + err.message });
+  }
+});
+
+// ── API: Admin - Get All ─────────────────────────────────────
+app.get('/api/admin/registrations', async (req, res) => {
+  try {
+    const regs = await Registration.find().sort({ submittedAt: -1 }).lean();
+    res.json(regs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── API: Health check ────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' });
+});
+
+// ── Serve frontend ───────────────────────────────────────────
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ── Start ────────────────────────────────────────────────────
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`\n✝️  Red Church Directory running at http://localhost:${PORT}`);
+    console.log(`   Admin panel: http://localhost:${PORT}/admin.html\n`);
+  });
+});
