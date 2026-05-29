@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Red Church – Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f8f4ef;color:#1c1410;min-height:100vh}
+.header{background:linear-gradient(160deg,#5C0E0E,#8B1A1A);color:white;padding:32px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.header h1{font-family:'Cinzel',serif;font-size:1.4rem;letter-spacing:0.04em}
+.header p{font-size:0.82rem;opacity:0.7;margin-top:4px}
+.back-link{color:rgba(255,255,255,0.7);text-decoration:none;font-size:0.82rem;border:1px solid rgba(255,255,255,0.3);padding:8px 16px;border-radius:6px;transition:all 0.2s}
+.back-link:hover{background:rgba(255,255,255,0.1)}
+.container{max-width:1100px;margin:0 auto;padding:32px 20px}
+.stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+.stat{background:white;border:1px solid #D9C9B5;border-radius:10px;padding:20px 24px;flex:1;min-width:140px;box-shadow:0 1px 8px rgba(92,14,14,0.07)}
+.stat .n{font-family:'Cinzel',serif;font-size:2rem;color:#8B1A1A;font-weight:600}
+.stat .l{font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;color:#7A6555;margin-top:4px}
+.toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.search-bar{background:white;border:1px solid #D9C9B5;border-radius:10px;padding:14px 18px;flex:1;min-width:220px;box-shadow:0 1px 6px rgba(92,14,14,0.06);display:flex;align-items:center;gap:10px}
+.search-bar input{width:100%;border:none;outline:none;font-size:0.93rem;font-family:'DM Sans',sans-serif;color:#1c1410;background:transparent}
+.export-btn{background:#8B1A1A;color:white;border:none;padding:12px 22px;border-radius:10px;font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.06em;cursor:pointer;transition:background 0.2s;white-space:nowrap}
+.export-btn:hover{background:#5C0E0E}
+.card{background:white;border:1px solid #D9C9B5;border-radius:10px;margin-bottom:14px;box-shadow:0 1px 8px rgba(92,14,14,0.07);overflow:hidden}
+.card-head{padding:18px 22px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;cursor:pointer;user-select:none;transition:background 0.15s}
+.card-head:hover{background:#fdf8f2}
+.fc-num{font-family:'Cinzel',serif;font-weight:600;color:#8B1A1A;font-size:1rem}
+.bec{font-size:0.78rem;color:#7A6555;margin-top:3px}
+.meta{font-size:0.75rem;color:#aaa;text-align:right;flex-shrink:0}
+.expand-icon{font-size:0.8rem;color:#aaa;transition:transform 0.2s;flex-shrink:0;margin-top:2px}
+.card.open .expand-icon{transform:rotate(180deg)}
+.members-table{display:none;border-top:1px solid #f0e8da;overflow-x:auto}
+.card.open .members-table{display:block}
+table{width:100%;border-collapse:collapse;font-size:0.8rem}
+th{background:#fdf8f2;padding:10px 14px;text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.07em;color:#7A6555;font-weight:500;border-bottom:1px solid #ede5d8;white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid #f5ede0;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fdfaf6}
+.type-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:0.68rem;font-weight:500;text-transform:uppercase;letter-spacing:0.05em}
+.type-primary{background:rgba(139,26,26,0.1);color:#8B1A1A}
+.type-spouse {background:rgba(201,148,58,0.12);color:#8B5E0A}
+.type-child  {background:rgba(34,99,154,0.1);color:#1A5B8B}
+.type-other  {background:#f3f4f6;color:#555}
+.empty{text-align:center;padding:60px 20px;color:#aaa;font-size:0.95rem}
+.loading{text-align:center;padding:60px 20px;color:#8B1A1A;font-size:0.95rem}
+.db-status{display:inline-flex;align-items:center;gap:6px;font-size:0.75rem;padding:4px 12px;border-radius:99px;background:rgba(255,255,255,0.15);margin-top:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:#4ade80}
+.dot.red{background:#f87171}
+@media(max-width:640px){th:nth-child(n+6),td:nth-child(n+6){display:none}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>✝ Red Church – Admin Panel</h1>
+    <p>All family directory registrations</p>
+    <div class="db-status"><span class="dot" id="dbDot"></span><span id="dbLabel">Checking...</span></div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+    <a href="/" class="back-link">← Registration Form</a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="stats">
+    <div class="stat"><div class="n" id="totalFamilies">–</div><div class="l">Families Registered</div></div>
+    <div class="stat"><div class="n" id="totalMembers">–</div><div class="l">Total Members</div></div>
+    <div class="stat"><div class="n" id="totalBEC">–</div><div class="l">BEC Groups</div></div>
+    <div class="stat"><div class="n" id="todayCount">–</div><div class="l">Added Today</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-bar">
+      <span style="color:#aaa">🔍</span>
+      <input type="text" id="search" placeholder="Search by card number, BEC group or member name…" oninput="filterCards()"/>
+    </div>
+    <button class="export-btn" onclick="loadData()" style="background:#4A3728">↻ Refresh</button>
+  </div>
+
+  <div id="registrations"><div class="loading">Loading registrations…</div></div>
+</div>
+
+<script>
+let allData = [];
+
+async function checkHealth() {
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    const connected = d.db === 'connected';
+    document.getElementById('dbDot').className = 'dot' + (connected ? '' : ' red');
+    document.getElementById('dbLabel').textContent = connected ? 'MongoDB Connected' : 'DB Disconnected';
+  } catch(e) {
+    document.getElementById('dbDot').className = 'dot red';
+    document.getElementById('dbLabel').textContent = 'Server Offline';
+  }
+}
+
+async function loadData() {
+  try {
+    const res = await fetch('/api/admin/registrations');
+    allData = await res.json();
+    renderStats();
+    renderCards(allData);
+  } catch(e) {
+    document.getElementById('registrations').innerHTML = '<div class="empty">Failed to load. Make sure server is running.</div>';
+  }
+}
+
+function renderStats() {
+  document.getElementById('totalFamilies').textContent = allData.length;
+  document.getElementById('totalMembers').textContent = allData.reduce((s,r) => s + (r.members||[]).length, 0);
+  const groups = new Set(allData.map(r => r.becGroup));
+  document.getElementById('totalBEC').textContent = groups.size;
+  const today = new Date().toDateString();
+  const todayRegs = allData.filter(r => new Date(r.submittedAt).toDateString() === today).length;
+  document.getElementById('todayCount').textContent = todayRegs;
+}
+
+function renderCards(data) {
+  const wrap = document.getElementById('registrations');
+  if (!data.length) { wrap.innerHTML = '<div class="empty">No registrations yet.</div>'; return; }
+
+  wrap.innerHTML = data.map(r => {
+    const date = new Date(r.submittedAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const rows = (r.members||[]).map(m => `
+      <tr>
+        <td><span class="type-badge type-${m.memberType}">${m.memberType}</span></td>
+        <td><strong>${esc(m.name)}</strong></td>
+        <td>${m.bloodGroup||'–'}</td>
+        <td>${m.dateOfBirth ? fmt(m.dateOfBirth) : '–'}</td>
+        <td>${m.dateOfMarriage ? fmt(m.dateOfMarriage) : '–'}</td>
+        <td>${m.mobileNo||'–'}</td>
+        <td>${m.alternateContact||'–'}</td>
+        <td style="max-width:160px">${esc(m.address||'–')}</td>
+      </tr>`).join('');
+
+    return `<div class="card" id="card-${r._id}">
+      <div class="card-head" onclick="toggle('${r._id}')">
+        <div>
+          <div class="fc-num">${esc(r.familyCardNumber)}</div>
+          <div class="bec">${esc(r.becGroup)} &nbsp;·&nbsp; ${(r.members||[]).length} member${(r.members||[]).length!==1?'s':''}</div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:start">
+          <div class="meta">${date}</div>
+          <span class="expand-icon">▼</span>
+        </div>
+      </div>
+      <div class="members-table">
+        <table>
+          <thead><tr><th>Type</th><th>Name</th><th>Blood</th><th>DOB</th><th>Marriage</th><th>Mobile</th><th>Alt Contact</th><th>Address</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggle(id) {
+  document.getElementById('card-' + id).classList.toggle('open');
+}
+
+function filterCards() {
+  const q = document.getElementById('search').value.toLowerCase();
+  if (!q) { renderCards(allData); return; }
+  const filtered = allData.filter(r =>
+    r.familyCardNumber.toLowerCase().includes(q) ||
+    r.becGroup.toLowerCase().includes(q) ||
+    (r.members||[]).some(m => m.name.toLowerCase().includes(q))
+  );
+  renderCards(filtered);
+}
+
+function fmt(d) {
+  if (!d) return '–';
+  const [y,m,day] = d.split('-');
+  const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${parseInt(day)} ${mn[parseInt(m)-1]} ${y}`;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function exportCSV() {
+  if (!allData.length) { alert('No data to export.'); return; }
+  const rows = [['Family Card No','BEC Group','Submitted At','Member Type','Name','Blood Group','DOB','Date of Marriage','Mobile','Alt Contact','Address']];
+  allData.forEach(r => {
+    (r.members||[]).forEach(m => {
+      rows.push([
+        r.familyCardNumber, r.becGroup,
+        new Date(r.submittedAt).toLocaleString('en-IN'),
+        m.memberType, m.name, m.bloodGroup||'',
+        m.dateOfBirth||'', m.dateOfMarriage||'',
+        m.mobileNo||'', m.alternateContact||'', m.address||''
+      ]);
+    });
+  });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  a.download = 'red-church-directory-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+checkHealth();
+loadData();
+setInterval(loadData, 30000);
+setInterval(checkHealth, 15000);
+</script>
+</body>
+</html>
