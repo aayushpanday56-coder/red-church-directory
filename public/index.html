@@ -549,18 +549,18 @@ function renderMember(id, type, index) {
       </div>
       ` : `<div class="field"><label>&nbsp;</label><div style="height:44px"></div></div>`}
       <div class="field">
-        <label>Mobile No <span class="req">*</span></label>
-        <input type="tel" id="mobile-${id}" placeholder="+91 99999 99999" maxlength="15"/>
-        <span class="err-msg">Mobile number is required.</span>
+        <label>Mobile No ${isPrimary ? '<span class="req">*</span>' : ''}</label>
+        <input type="tel" id="mobile-${id}" placeholder="${isPrimary ? '+91 99999 99999' : 'Optional'}" maxlength="15"/>
+        ${isPrimary ? '<span class="err-msg">Mobile number is required.</span>' : ''}
       </div>
       <div class="field">
         <label>Alternate Contact No</label>
         <input type="tel" id="alt-${id}" placeholder="Optional" maxlength="15"/>
       </div>
       <div class="field field-full">
-        <label>Address <span class="req">*</span></label>
-        <input type="text" id="address-${id}" placeholder="House No, Street, City, Pincode" maxlength="250"/>
-        <span class="err-msg">Address is required.</span>
+        <label>Address ${isPrimary ? '<span class="req">*</span>' : ''}</label>
+        <input type="text" id="address-${id}" placeholder="${isPrimary ? 'House No, Street, City, Pincode' : 'Optional - same as primary member'}" maxlength="250"/>
+        ${isPrimary ? '<span class="err-msg">Address is required.</span>' : ''}
       </div>
     </div>
   `;
@@ -623,12 +623,15 @@ function submitForm() {
     const mobile   = getVal('mobile-' + m.id);
     const address  = getVal('address-' + m.id);
 
+    const isPrimary = m.type === 'primary';
     markError('name-'   + m.id, !name);
     markError('dob-'    + m.id, !dob);
-    markError('mobile-' + m.id, !mobile);
-    markError('address-'+ m.id, !address);
+    if (isPrimary) {
+      markError('mobile-' + m.id, !mobile);
+      markError('address-'+ m.id, !address);
+    }
 
-    if (!name || !dob || !mobile || !address) valid = false;
+    if (!name || !dob || (isPrimary && (!mobile || !address))) valid = false;
 
     memberData.push({
       memberType: m.type,
