@@ -352,6 +352,78 @@ body::before {
   .header { padding: 36px 16px 32px; }
 }
 
+
+/* ── Page Loading Screen ── */
+#pageLoader {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(160deg, var(--crimson-dk) 0%, var(--crimson) 60%, #A52020 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+#pageLoader.hide {
+  opacity: 0; visibility: hidden; pointer-events: none;
+}
+.loader-cross {
+  font-size: 3.5rem; color: white; opacity: 0.95;
+  animation: pulseCross 1.8s ease-in-out infinite;
+  margin-bottom: 20px;
+}
+@keyframes pulseCross {
+  0%,100% { transform: scale(1); opacity: 0.9; }
+  50%      { transform: scale(1.08); opacity: 1; }
+}
+.loader-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  color: white; font-weight: 700;
+  letter-spacing: 0.06em; margin-bottom: 6px;
+  text-align: center; padding: 0 20px;
+}
+.loader-title span { color: #E8C27A; }
+.loader-subtitle {
+  font-family: 'Crimson Pro', serif;
+  font-style: italic; font-size: 1.05rem;
+  color: rgba(255,255,255,0.75); margin-bottom: 44px;
+}
+.loader-bar-wrap {
+  width: 200px; height: 3px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 99px; overflow: hidden;
+  margin-bottom: 20px;
+}
+.loader-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #E8C27A, white);
+  border-radius: 99px;
+  animation: loadBar 2.5s ease-in-out infinite;
+}
+@keyframes loadBar {
+  0%   { width: 0%;   margin-left: 0; }
+  50%  { width: 70%;  margin-left: 15%; }
+  100% { width: 0%;   margin-left: 100%; }
+}
+.loader-dots {
+  display: flex; gap: 8px; align-items: center;
+}
+.loader-dots span {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+.loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotPulse {
+  0%,100% { transform: scale(1); background: rgba(255,255,255,0.4); }
+  50%     { transform: scale(1.4); background: white; }
+}
+.loader-msg {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem; color: rgba(255,255,255,0.55);
+  margin-top: 16px; letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 /* ── Loading spinner ── */
 .spinner {
   display: inline-block; width: 18px; height: 18px;
@@ -362,6 +434,18 @@ body::before {
 </style>
 </head>
 <body>
+
+<!-- Page Loading Screen -->
+<div id="pageLoader">
+  <div class="loader-cross">✝</div>
+  <div class="loader-title"><span>Red Church</span> Directory</div>
+  <div class="loader-subtitle">Building our community</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-dots">
+    <span></span><span></span><span></span>
+  </div>
+  <div class="loader-msg">Loading form, please wait…</div>
+</div>
 
 <!-- Header -->
 <div class="header">
@@ -465,6 +549,13 @@ let members = [];
 
 function init() {
   addMember('primary');
+
+  // Hide loading screen smoothly
+  setTimeout(() => {
+    const loader = document.getElementById('pageLoader');
+    if (loader) loader.classList.add('hide');
+    setTimeout(() => { if (loader) loader.remove(); }, 700);
+  }, 600);
 }
 
 function addMember(type) {
