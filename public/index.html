@@ -419,7 +419,7 @@ body::before {
         </div>
         <div class="field field-full">
           <label>Name of BEC Group <span class="req">*</span></label>
-          <input type="text" id="becGroup" placeholder="e.g. St. Joseph BEC" maxlength="100"/>
+          <input type="text" id="becGroup" placeholder="Enter your BEC group name" maxlength="100"/>
           <span class="err-msg">This field is required.</span>
         </div>
       </div>
@@ -433,7 +433,7 @@ body::before {
       <div class="ornament-divider">✦ &nbsp; Add Family Members &nbsp; ✦</div>
       <div class="add-section">
         <button class="add-btn add-btn-spouse" id="addSpouseBtn" onclick="addMember('spouse')">
-          <span></span> Add Another Member
+          <span>💍</span> Add Wife / Spouse
         </button>
         <button class="add-btn add-btn-child" id="addChildBtn" onclick="addMember('child')">
           <span>👶</span> Add Child
@@ -461,22 +461,9 @@ body::before {
 
 <script>
 const BLOOD_GROUPS = ['A+','A-','B+','B-','AB+','AB-','O+','O-','Not Known'];
-const BEC_GROUPS = [
-  'St. Joseph BEC','St. Mary BEC','St. Peter BEC','St. Paul BEC',
-  'St. Francis BEC','St. Anthony BEC','St. Thomas BEC','St. John BEC',
-  'St. Michael BEC','Holy Family BEC','Other'
-];
-
 let members = [];
 
 function init() {
-  // Populate BEC datalist
-  const dl = document.createElement('datalist');
-  dl.id = 'becList';
-  BEC_GROUPS.forEach(g => { const o = document.createElement('option'); o.value = g; dl.appendChild(o); });
-  document.body.appendChild(dl);
-  document.getElementById('becGroup').setAttribute('list','becList');
-
   addMember('primary');
 }
 
