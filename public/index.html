@@ -438,13 +438,13 @@ body::before {
 <!-- Page Loading Screen -->
 <div id="pageLoader">
   <div class="loader-cross">✝</div>
-  <div class="loader-title"><span>St. Francis Assisi</span> Cathedral Church, Indore</div>
-  <div class="loader-subtitle">Building our community</div>
+  <div class="loader-title"><span>St. Francis Assisi</span><br>Cathedral Church, Indore</div>
+  <div class="loader-subtitle">Family Directory</div>
   <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
   <div class="loader-dots">
     <span></span><span></span><span></span>
   </div>
-  <div class="loader-msg">Loading form, please wait…</div>
+  <div class="loader-msg" id="loaderMsg">Loading form, please wait…</div>
 </div>
 
 <!-- Header -->
@@ -557,6 +557,20 @@ function init() {
     setTimeout(() => { if (loader) loader.remove(); }, 700);
   }, 600);
 }
+
+// Show wake-up message if server is slow (Render free plan)
+setTimeout(() => {
+  const msg = document.getElementById('loaderMsg');
+  if (msg) msg.textContent = 'Server is waking up, please wait…';
+}, 4000);
+setTimeout(() => {
+  const msg = document.getElementById('loaderMsg');
+  if (msg) msg.textContent = 'Almost ready, just a few more seconds…';
+}, 10000);
+setTimeout(() => {
+  const msg = document.getElementById('loaderMsg');
+  if (msg) msg.textContent = 'Taking longer than usual, hang tight…';
+}, 20000);
 
 function addMember(type) {
   if (members.length >= 10) { showToast('Maximum 10 members reached.','error'); return; }
