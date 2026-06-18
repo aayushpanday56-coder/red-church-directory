@@ -3,10 +3,17 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
+
+// ── Serve static files IMMEDIATELY (before DB connects) ──────
+// This means the HTML/CSS/JS loads right away — no waiting for MongoDB
+app.use(cors());
+app.use(express.json({ limit: '2mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ── MongoDB Schemas ──────────────────────────────────────────
 const memberSchema = new mongoose.Schema({
@@ -14,9 +21,9 @@ const memberSchema = new mongoose.Schema({
   sortOrder:  { type: Number, default: 0 },
   name:       { type: String, required: true, trim: true },
   bloodGroup: { type: String, default: null },
-  dateOfBirth:    { type: String, default: null },
-  dateOfMarriage: { type: String, default: null },
-  mobileNo:       { type: String, default: null },
+  dateOfBirth:      { type: String, default: null },
+  dateOfMarriage:   { type: String, default: null },
+  mobileNo:         { type: String, default: null },
   alternateContact: { type: String, default: null },
   address:    { type: String, default: null, trim: true }
 });
@@ -31,29 +38,14 @@ const registrationSchema = new mongoose.Schema({
 
 const Registration = mongoose.model('Registration', registrationSchema);
 
-// ── Middleware ───────────────────────────────────────────────
-app.use(cors());
-app.use(express.json({ limit: '2mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ── Connect MongoDB ──────────────────────────────────────────
-async function connectDB() {
-  if (!MONGO_URI) {
-    console.error('❌  MONGO_URI environment variable is not set!');
-    console.error('    Set it in your .env file or Render dashboard.');
-    process.exit(1);
-  }
-  try {
-    await mongoose.connect(MONGO_URI);
-    console.log('✅  MongoDB connected successfully');
-  } catch (err) {
-    console.error('❌  MongoDB connection failed:', err.message);
-    process.exit(1);
-  }
-}
+// ── DB connection state ──────────────────────────────────────
+let dbConnected = false;
 
 // ── API: Submit ──────────────────────────────────────────────
 app.post('/api/submit', async (req, res) => {
+  if (!dbConnected)
+    return res.status(503).json({ error: 'Server is still starting up, please try again in a moment.' });
+
   try {
     const { familyCardNumber, becGroup, members } = req.body;
 
@@ -100,8 +92,10 @@ app.post('/api/submit', async (req, res) => {
   }
 });
 
-// ── API: Admin - Get All ─────────────────────────────────────
+// ── API: Admin ───────────────────────────────────────────────
 app.get('/api/admin/registrations', async (req, res) => {
+  if (!dbConnected)
+    return res.status(503).json({ error: 'Database not connected yet.' });
   try {
     const regs = await Registration.find().sort({ submittedAt: -1 }).lean();
     res.json(regs);
@@ -110,9 +104,9 @@ app.get('/api/admin/registrations', async (req, res) => {
   }
 });
 
-// ── API: Health check ────────────────────────────────────────
+// ── API: Health ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' });
+  res.json({ status: 'ok', db: dbConnected ? 'connected' : 'connecting' });
 });
 
 // ── Serve frontend ───────────────────────────────────────────
@@ -120,10 +114,22 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ── Start ────────────────────────────────────────────────────
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`\n✝️  Red Church Directory running at http://localhost:${PORT}`);
-    console.log(`   Admin panel: http://localhost:${PORT}/admin.html\n`);
-  });
+// ── Start server FIRST, then connect DB ─────────────────────
+// Server starts immediately — page loads right away
+// MongoDB connects in background
+app.listen(PORT, () => {
+  console.log(`\n✝️  St. Francis Assisi Cathedral Church Directory`);
+  console.log(`   Server running at http://localhost:${PORT}`);
+  console.log(`   Connecting to MongoDB...\n`);
 });
+
+// Connect MongoDB after server is already listening
+mongoose.connect(MONGO_URI)
+  .then(() => {
+    dbConnected = true;
+    console.log('✅  MongoDB connected successfully\n');
+  })
+  .catch(err => {
+    console.error('❌  MongoDB connection failed:', err.message);
+    process.exit(1);
+  });
