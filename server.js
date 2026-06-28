@@ -3,14 +3,12 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
 
-// ── Serve static files IMMEDIATELY (before DB connects) ──────
-// This means the HTML/CSS/JS loads right away — no waiting for MongoDB
+// ── Serve static files IMMEDIATELY ──────────────────────────
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -114,16 +112,12 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ── Start server FIRST, then connect DB ─────────────────────
-// Server starts immediately — page loads right away
-// MongoDB connects in background
+// ── Start server FIRST then connect DB ──────────────────────
 app.listen(PORT, () => {
   console.log(`\n✝️  St. Francis Assisi Cathedral Church Directory`);
-  console.log(`   Server running at http://localhost:${PORT}`);
-  console.log(`   Connecting to MongoDB...\n`);
+  console.log(`   Server running at http://localhost:${PORT}\n`);
 });
 
-// Connect MongoDB after server is already listening
 mongoose.connect(MONGO_URI)
   .then(() => {
     dbConnected = true;
