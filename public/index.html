@@ -701,11 +701,17 @@ function renderMember(id, type, index) {
       ${!isPrimary ? `<button class="remove-btn" title="Remove" onclick="removeMember(${id})">✕</button>` : ''}
     </div>
     <div class="fields-grid">
-      <div class="field field-full">
+      <div class="field ${isPrimary ? 'field-full' : ''}">
         <label>Name of Family Member <span class="req">*</span></label>
         <input type="text" id="name-${id}" placeholder="Full name" maxlength="100"/>
         <span class="err-msg">Name is required.</span>
       </div>
+      ${!isPrimary ? `
+      <div class="field">
+        <label>Relation with Primary Member <span class="req">*</span></label>
+        <input type="text" id="relation-${id}" placeholder="e.g. Wife, Son, Daughter, Mother" maxlength="50"/>
+        <span class="err-msg">Relation is required.</span>
+      </div>` : ''}
       <div class="field">
         <label>Blood Group</label>
         <select id="bloodGroup-${id}">
@@ -801,17 +807,21 @@ function submitForm() {
     const address  = getVal('address-' + m.id);
 
     const isPrimary = m.type === 'primary';
+    const relation = isPrimary ? null : getVal('relation-' + m.id);
     markError('name-'   + m.id, !name);
+    if (!isPrimary) markError('relation-' + m.id, !relation);
     if (isPrimary) {
       markError('dob-'    + m.id, !dob);
       markError('mobile-' + m.id, !mobile);
       markError('address-'+ m.id, !address);
     }
 
-    if (!name || (isPrimary && (!dob || !mobile || !address))) valid = false;
+    if (!name || (!isPrimary && !relation) || (isPrimary && (!dob || !mobile || !address))) valid = false;
 
+    const relation = m.type === 'primary' ? null : getVal('relation-' + m.id);
     memberData.push({
       memberType: m.type,
+      relation: relation || null,
       name, bloodGroup: blood, dateOfBirth: dob,
       dateOfMarriage: getVal('dom-' + m.id) || null,
       mobileNo: mobile,
@@ -840,7 +850,7 @@ function submitForm() {
         <div class="preview-member">
           <div class="preview-member-name">
             <span class="tag tag-${m.memberType}" style="font-size:0.68rem;padding:2px 8px;border-radius:99px;">${typeLabels[m.memberType]||m.memberType}</span>
-            ${m.name}
+            ${m.name}${m.relation ? ` <span style="font-size:0.75rem;color:var(--ink-soft);font-weight:400;">(${m.relation})</span>` : ''}
           </div>
           ${m.bloodGroup ? `<div class="preview-row"><span class="preview-label">Blood Group</span><span class="preview-value">${m.bloodGroup}</span></div>` : ''}
           ${m.dateOfBirth ? `<div class="preview-row"><span class="preview-label">Date of Birth</span><span class="preview-value">${m.dateOfBirth}</span></div>` : ''}
