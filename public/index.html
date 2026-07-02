@@ -424,6 +424,76 @@ body::before {
   text-transform: uppercase;
 }
 
+
+/* ── Preview Confirmation Popup ── */
+.popup-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(28,20,16,0.65);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  opacity: 0; visibility: hidden;
+  transition: all 0.3s ease;
+}
+.popup-overlay.show { opacity: 1; visibility: visible; }
+.popup-box {
+  background: white; border-radius: 16px;
+  padding: 36px 32px; max-width: 520px; width: 100%;
+  box-shadow: 0 20px 60px rgba(92,14,14,0.25);
+  transform: scale(0.92) translateY(20px);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  max-height: 80vh; overflow-y: auto;
+}
+.popup-overlay.show .popup-box { transform: scale(1) translateY(0); }
+.popup-title {
+  font-family: 'Cinzel', serif; font-size: 1.1rem;
+  color: var(--crimson-dk); margin-bottom: 4px;
+  display: flex; align-items: center; gap: 10px;
+}
+.popup-subtitle {
+  font-family: 'Crimson Pro', serif; font-style: italic;
+  color: var(--ink-soft); font-size: 0.95rem; margin-bottom: 20px;
+}
+.popup-divider { height: 1px; background: var(--parchment); margin: 16px 0; }
+.preview-section { margin-bottom: 16px; }
+.preview-section-title {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--crimson); font-weight: 600; margin-bottom: 10px;
+  font-family: 'DM Sans', sans-serif;
+}
+.preview-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 12px; margin-bottom: 6px; font-size: 0.85rem;
+}
+.preview-label { color: var(--ink-soft); flex-shrink: 0; min-width: 120px; }
+.preview-value { color: var(--ink); font-weight: 500; text-align: right; }
+.preview-member {
+  background: var(--cream); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;
+}
+.preview-member-name {
+  font-weight: 600; color: var(--ink); font-size: 0.9rem;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.popup-actions {
+  display: flex; gap: 12px; margin-top: 24px;
+}
+.popup-btn-confirm {
+  flex: 1; background: linear-gradient(135deg, var(--crimson-dk), var(--crimson));
+  color: white; border: none; padding: 13px 20px;
+  border-radius: 8px; font-family: 'Cinzel', serif;
+  font-size: 0.85rem; letter-spacing: 0.06em;
+  cursor: pointer; transition: all 0.2s;
+}
+.popup-btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(139,26,26,0.3); }
+.popup-btn-cancel {
+  flex: 1; background: white; color: var(--ink-mid);
+  border: 1.5px solid var(--border); padding: 13px 20px;
+  border-radius: 8px; font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem; cursor: pointer; transition: all 0.2s;
+}
+.popup-btn-cancel:hover { background: var(--parchment); }
+
 /* ── Loading spinner ── */
 .spinner {
   display: inline-block; width: 18px; height: 18px;
@@ -523,7 +593,7 @@ body::before {
           <span>👶</span> Add Child
         </button>
         <button class="add-btn" style="border-color:var(--border);color:var(--ink-soft);" id="addOtherBtn" onclick="addMember('other')">
-          <span>👤</span> Add Other Member
+          <span>👤</span> Add Another Family Member
         </button>
       </div>
       <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:12px;font-style:italic;">Maximum 10 members per family registration.</p>
@@ -532,12 +602,26 @@ body::before {
     <!-- Submit -->
     <div class="submit-area">
       <button class="submit-btn" id="submitBtn" onclick="submitForm()">
-        ✝ &nbsp; Submit Family Registration
+        ✝ &nbsp; Preview & Submit
       </button>
       <p class="submit-note">All information is stored securely and used only for church directory purposes.</p>
     </div>
 
   </div><!-- /formWrapper -->
+</div>
+
+
+<!-- Preview Confirmation Popup -->
+<div class="popup-overlay" id="previewPopup">
+  <div class="popup-box">
+    <div class="popup-title">✝ &nbsp; Review Your Details</div>
+    <div class="popup-subtitle">Please check all information before submitting</div>
+    <div id="previewContent"></div>
+    <div class="popup-actions">
+      <button class="popup-btn-cancel" onclick="closePreview()">✕ &nbsp; Go Back & Edit</button>
+      <button class="popup-btn-confirm" id="confirmBtn" onclick="confirmSubmit()">✝ &nbsp; Yes, Submit</button>
+    </div>
+  </div>
 </div>
 
 <!-- Toast -->
@@ -696,17 +780,18 @@ function formatDate(input) {
   input.value = v;
 }
 
+// Store validated data for submission after preview
+let pendingSubmitData = null;
+
 function submitForm() {
   let valid = true;
 
-  // Family info validation
   const fcn = getVal('familyCardNumber');
   const bec = getVal('becGroup');
   markError('familyCardNumber', !fcn);
   markError('becGroup', !bec);
   if (!fcn || !bec) valid = false;
 
-  // Members validation
   const memberData = [];
   for (const m of members) {
     const name     = getVal('name-' + m.id);
@@ -717,13 +802,13 @@ function submitForm() {
 
     const isPrimary = m.type === 'primary';
     markError('name-'   + m.id, !name);
-    markError('dob-'    + m.id, !dob);
     if (isPrimary) {
+      markError('dob-'    + m.id, !dob);
       markError('mobile-' + m.id, !mobile);
       markError('address-'+ m.id, !address);
     }
 
-    if (!name || !dob || (isPrimary && (!mobile || !address))) valid = false;
+    if (!name || (isPrimary && (!dob || !mobile || !address))) valid = false;
 
     memberData.push({
       memberType: m.type,
@@ -737,19 +822,67 @@ function submitForm() {
 
   if (!valid) { showToast('Please fill all required fields.', 'error'); return; }
 
+  // Store for later submission
+  pendingSubmitData = { familyCardNumber: fcn, becGroup: bec, members: memberData };
+
+  // Build preview HTML
+  const typeLabels = { primary: '👤 Primary', spouse: '💍 Spouse', child: '👶 Child', other: '👨‍👩‍👧 Family Member' };
+  let previewHtml = `
+    <div class="preview-section">
+      <div class="preview-section-title">Family Information</div>
+      <div class="preview-row"><span class="preview-label">Card Number</span><span class="preview-value">${fcn}</span></div>
+      <div class="preview-row"><span class="preview-label">BEC Group</span><span class="preview-value">${bec}</span></div>
+    </div>
+    <div class="popup-divider"></div>
+    <div class="preview-section">
+      <div class="preview-section-title">Family Members (${memberData.length})</div>
+      ${memberData.map(m => `
+        <div class="preview-member">
+          <div class="preview-member-name">
+            <span class="tag tag-${m.memberType}" style="font-size:0.68rem;padding:2px 8px;border-radius:99px;">${typeLabels[m.memberType]||m.memberType}</span>
+            ${m.name}
+          </div>
+          ${m.bloodGroup ? `<div class="preview-row"><span class="preview-label">Blood Group</span><span class="preview-value">${m.bloodGroup}</span></div>` : ''}
+          ${m.dateOfBirth ? `<div class="preview-row"><span class="preview-label">Date of Birth</span><span class="preview-value">${m.dateOfBirth}</span></div>` : ''}
+          ${m.dateOfMarriage ? `<div class="preview-row"><span class="preview-label">Date of Marriage</span><span class="preview-value">${m.dateOfMarriage}</span></div>` : ''}
+          ${m.mobileNo ? `<div class="preview-row"><span class="preview-label">Mobile</span><span class="preview-value">${m.mobileNo}</span></div>` : ''}
+          ${m.alternateContact ? `<div class="preview-row"><span class="preview-label">Alt Contact</span><span class="preview-value">${m.alternateContact}</span></div>` : ''}
+          ${m.address ? `<div class="preview-row"><span class="preview-label">Address</span><span class="preview-value">${m.address}</span></div>` : ''}
+        </div>
+      `).join('')}
+    </div>`;
+
+  document.getElementById('previewContent').innerHTML = previewHtml;
+  document.getElementById('previewPopup').classList.add('show');
+  return;
+}
+
+function closePreview() {
+  document.getElementById('previewPopup').classList.remove('show');
+}
+
+function confirmSubmit() {
+  if (!pendingSubmitData) return;
+  closePreview();
+
   const btn = document.getElementById('submitBtn');
+  const confirmBtn = document.getElementById('confirmBtn');
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span> &nbsp; Submitting…`;
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Submitting…';
 
   fetch('/api/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ familyCardNumber: fcn, becGroup: bec, members: memberData })
+    body: JSON.stringify(pendingSubmitData)
   })
   .then(r => r.json())
   .then(data => {
     btn.disabled = false;
     btn.innerHTML = '✝ &nbsp; Submit Family Registration';
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = '✝ &nbsp; Yes, Submit';
     if (data.success) {
       document.getElementById('formWrapper').style.display = 'none';
       document.getElementById('successScreen').classList.add('show');
