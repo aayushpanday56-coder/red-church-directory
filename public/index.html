@@ -818,7 +818,6 @@ function submitForm() {
 
     if (!name || (!isPrimary && !relation) || (isPrimary && (!dob || !mobile || !address))) valid = false;
 
-    const relation = m.type === 'primary' ? null : getVal('relation-' + m.id);
     memberData.push({
       memberType: m.type,
       relation: relation || null,
