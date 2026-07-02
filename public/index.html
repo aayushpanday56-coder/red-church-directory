@@ -706,10 +706,10 @@ function renderMember(id, type, index) {
         <input type="text" id="name-${id}" placeholder="Full name" maxlength="100"/>
         <span class="err-msg">Name is required.</span>
       </div>
-      ${!isPrimary ? `
+      ${(type === 'child' || type === 'other') ? `
       <div class="field">
         <label>Relation with Primary Member <span class="req">*</span></label>
-        <input type="text" id="relation-${id}" placeholder="e.g. Wife, Son, Daughter, Mother" maxlength="50"/>
+        <input type="text" id="relation-${id}" placeholder="e.g. Son, Daughter, Mother, Father" maxlength="50"/>
         <span class="err-msg">Relation is required.</span>
       </div>` : ''}
       <div class="field">
@@ -807,16 +807,17 @@ function submitForm() {
     const address  = getVal('address-' + m.id);
 
     const isPrimary = m.type === 'primary';
-    const relation = isPrimary ? null : getVal('relation-' + m.id);
+    const needsRelation = (m.type === 'child' || m.type === 'other');
+    const relation = needsRelation ? getVal('relation-' + m.id) : null;
     markError('name-'   + m.id, !name);
-    if (!isPrimary) markError('relation-' + m.id, !relation);
+    if (needsRelation) markError('relation-' + m.id, !relation);
     if (isPrimary) {
       markError('dob-'    + m.id, !dob);
       markError('mobile-' + m.id, !mobile);
       markError('address-'+ m.id, !address);
     }
 
-    if (!name || (!isPrimary && !relation) || (isPrimary && (!dob || !mobile || !address))) valid = false;
+    if (!name || (needsRelation && !relation) || (isPrimary && (!dob || !mobile || !address))) valid = false;
 
     memberData.push({
       memberType: m.type,
