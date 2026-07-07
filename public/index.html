@@ -573,7 +573,35 @@ body::before {
         </div>
         <div class="field field-full">
           <label>Name of BEC Group <span class="req">*</span></label>
-          <input type="text" id="becGroup" placeholder="Enter your BEC group name" maxlength="100"/>
+          <select id="becGroup">
+            <option value="">-- Select BEC Group --</option>
+            <option>St. Augustine</option>
+            <option>St. Arnold</option>
+            <option>St. Anthony</option>
+            <option>St. Alphosa</option>
+            <option>Bl. Rani Maria</option>
+            <option>St. Don Bosco</option>
+            <option>St. Dominic Savio</option>
+            <option>St. Faustina</option>
+            <option>St. Francis Xavier - 1</option>
+            <option>St. Francis Xavier - 2</option>
+            <option>St. George</option>
+            <option>St. John Marie Viannry</option>
+            <option>St. Joseph</option>
+            <option>St. John</option>
+            <option>St. Jude</option>
+            <option>St. Kuriya Cose Chavra</option>
+            <option>St. Mary</option>
+            <option>St. Matthew</option>
+            <option>St. Monica</option>
+            <option>St. Mother Teresa</option>
+            <option>St. Michael</option>
+            <option>St. Paul</option>
+            <option>St. Sebastian</option>
+            <option>St. Stephen</option>
+            <option>St. Thomas</option>
+            <option>St. Vincent</option>
+          </select>
           <span class="err-msg">This field is required.</span>
         </div>
       </div>
@@ -685,7 +713,7 @@ function renderMember(id, type, index) {
     other:   'Family Member'
   };
 
-  const showMarriage = (type === 'primary' || type === 'spouse');
+  const showMarriage = (type === 'primary' || type === 'spouse' || type === 'other');
 
   const div = document.createElement('div');
   div.className = 'card';
